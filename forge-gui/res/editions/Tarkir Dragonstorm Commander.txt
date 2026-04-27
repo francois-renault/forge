@@ -56,6 +56,8 @@ ScryfallCode=TDC
 48 R Steward of the Harvest @Marie Magny
 49 R Will of the Sultai @Cristi Balanescu
 50 R Colossal Grave-Reaver @Bryan Sola
+
+[etched]
 51 R Ainok Strike Leader @Alexander Mokhov
 52 R Aligned Heart @Aurore Folny
 53 R Ironwill Forger @Konstantin Porubov
@@ -96,6 +98,8 @@ ScryfallCode=TDC
 88 R Steward of the Harvest @Marie Magny
 89 R Will of the Sultai @Cristi Balanescu
 90 R Colossal Grave-Reaver @Bryan Sola
+
+[cards]
 91 R Vanquish the Horde @Johann Bodin
 92 R Narset's Reversal @Nathaniel Himawan
 93 R Gravecrawler @Danny Schwartz
@@ -113,6 +117,8 @@ ScryfallCode=TDC
 105 U Arcane Signet @Racrufi
 106 U Sol Ring @Leon Tukker
 107 C Command Tower @Marina Ortega Lorente
+
+[etched]
 108 R Adeline, Resplendent Cathar @Bryan Sola
 109 M Angel of Invention @Volkan Baǵa
 110 R Baldin, Century Herdmaster @Zoltan Boros

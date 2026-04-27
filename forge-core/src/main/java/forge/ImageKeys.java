@@ -128,7 +128,7 @@ public final class ImageKeys {
 
             if(!dir.equals(CACHE_TOKEN_PICS_DIR)){
                 // if there's an art variant try without it
-                String withNoVariant = filename.replaceAll("\\.[a-zA-Z0-9†★]+\\.full$",".full");
+                String withNoVariant = filename.replaceAll("\\.[a-zA-Z0-9†★☇]+\\.full$",".full");
                 file = findFile(dir, withNoVariant);
                 if (file != null) {
                     cachedCards.put(cacheKey, file);
