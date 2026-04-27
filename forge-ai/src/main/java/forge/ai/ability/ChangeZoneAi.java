@@ -2,7 +2,6 @@ package forge.ai.ability;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import forge.ai.*;
 import forge.card.CardType;
 import forge.card.MagicColor;
@@ -32,6 +31,8 @@ import forge.util.collect.FCollectionView;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 public class ChangeZoneAi extends SpellAbilityAi {
     /*
@@ -45,23 +46,23 @@ public class ChangeZoneAi extends SpellAbilityAi {
     // cards where multiple cards are fetched at once and they need to be coordinated
     private static CardCollection multipleCardsToChoose = new CardCollection();
 
-    protected boolean willPayCosts(Player ai, SpellAbility sa, Cost cost, Card source) {
+    protected boolean willPayCosts(Player payer, SpellAbility sa, Cost cost, Card source) {
         if (sa.isHidden()) {
-            if (!ComputerUtilCost.checkSacrificeCost(ai, cost, source, sa)
+            if (!ComputerUtilCost.checkSacrificeCost(payer, cost, source, sa)
                     && !"Battlefield".equals(sa.getParam("Destination")) && !source.isLand()) {
                 return false;
             }
 
-            if (!ComputerUtilCost.checkLifeCost(ai, cost, source, 4, sa)) {
+            if (!ComputerUtilCost.checkLifeCost(payer, cost, source, 4, sa)) {
                 return false;
             }
 
-            if (!ComputerUtilCost.checkDiscardCost(ai, cost, source, sa)) {
+            if (!ComputerUtilCost.checkDiscardCost(payer, cost, source, sa)) {
                 for (final CostPart part : cost.getCostParts()) {
                     if (part instanceof CostDiscard) {
                         CostDiscard cd = (CostDiscard) part;
                         // this is mainly for typecycling
-                        if (!cd.payCostFromSource() || !ComputerUtil.isWorseThanDraw(ai, source)) {
+                        if (!cd.payCostFromSource() || !ComputerUtil.isWorseThanDraw(payer, source)) {
                             return false;
                         }
                     }
@@ -70,28 +71,11 @@ public class ChangeZoneAi extends SpellAbilityAi {
             return true;
         }
 
-        if (sa.isCraft()) {
-            CardCollection payingCards = new CardCollection();
-            int needed = 0;
-            for (final CostPart part : cost.getCostParts()) {
-                if (part instanceof CostExile) {
-                    if (part.payCostFromSource()) {
-                        continue;
-                    }
-                    int amt = part.getAbilityAmount(sa);
-                    needed += amt;
-                    CardCollection toAdd = ComputerUtil.chooseExileFrom(ai, (CostExile) part, source, amt, sa, true);
-                    if (toAdd != null) {
-                        payingCards.addAll(toAdd);
-                    }
-                }
-            }
-            if (payingCards.size() < needed) {
-                return false;
-            }
+        if (sa.isCraft() && !ComputerUtilCost.checkExileFromGraveCost(cost, payer, sa)) {
+            return false;
         }
 
-        return super.willPayCosts(ai, sa, cost, source);
+        return super.willPayCosts(payer, sa, cost, source);
     }
 
     @Override
@@ -198,13 +182,12 @@ public class ChangeZoneAi extends SpellAbilityAi {
      * <p>
      * changeZonePlayDrawbackAI.
      * </p>
-     * @param sa
-     *            a {@link forge.game.spellability.SpellAbility} object.
      *
+     * @param sa a {@link SpellAbility} object.
      * @return a boolean.
      */
     @Override
-    public AiAbilityDecision chkDrawback(SpellAbility sa, Player aiPlayer) {
+    public AiAbilityDecision chkDrawback(Player aiPlayer, SpellAbility sa) {
         if (sa.isHidden()) {
             return hiddenOriginPlayDrawbackAI(aiPlayer, sa);
         }
@@ -247,15 +230,13 @@ public class ChangeZoneAi extends SpellAbilityAi {
             }
             if (delta <= 0) {
                 return new AiAbilityDecision(100, AiPlayDecision.WillPlay);
-            } else {
-                return new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
             }
+            return new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
         } else if ("SaviorOfOllenbock".equals(aiLogic)) {
             if (SpecialCardAi.SaviorOfOllenbock.consider(aiPlayer, sa)) {
                 return new AiAbilityDecision(100, AiPlayDecision.WillPlay);
-            } else {
-                return new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
             }
+            return new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
         }
 
         if (sa.isHidden()) {
@@ -322,7 +303,7 @@ public class ChangeZoneAi extends SpellAbilityAi {
             }
         }
 
-        Iterable<Player> pDefined = Lists.newArrayList(source.getController());
+        Iterable<Player> pDefined;
         final TargetRestrictions tgt = sa.getTargetRestrictions();
         if (tgt != null && tgt.canTgtPlayer()) {
             sa.resetTargets();
@@ -336,20 +317,15 @@ public class ChangeZoneAi extends SpellAbilityAi {
                 return new AiAbilityDecision(0, AiPlayDecision.TargetingFailed);
             }
             pDefined = sa.getTargets().getTargetPlayers();
+        } else if (sa.hasParam("DefinedPlayer")) {
+            pDefined = AbilityUtils.getDefinedPlayers(source, sa.getParam("DefinedPlayer"), sa);
         } else {
-            if (sa.hasParam("DefinedPlayer")) {
-                pDefined = AbilityUtils.getDefinedPlayers(source, sa.getParam("DefinedPlayer"), sa);
-            } else {
-                pDefined = AbilityUtils.getDefinedPlayers(source, sa.getParam("Defined"), sa);
-            }
+            pDefined = AbilityUtils.getDefinedPlayers(source, sa.getParam("Defined"), sa);
         }
 
         String type = sa.getParam("ChangeType");
-        if (type != null && type.contains("X") && sa.getSVar("X").equals("Count$xPaid")) {
-            // Set PayX here to maximum value.
-            final int xPay = ComputerUtilCost.getMaxXValue(sa, ai, sa.isTrigger());
-            sa.setXManaCostPaid(xPay);
-            type = type.replace("X", Integer.toString(xPay));
+        if (type != null && type.contains("X")) {
+            ComputerUtilCost.setMaxXValue(sa, ai, sa.isTrigger());
         }
 
         for (final Player p : pDefined) {
@@ -388,17 +364,16 @@ public class ChangeZoneAi extends SpellAbilityAi {
             String num = sa.getParamOrDefault("ChangeNum", "1");
             if (num.contains("X")) {
                 if (sa.getSVar("X").equals("Count$xPaid")) {
-                    // Set PayX here to maximum value.
-                    int xPay = ComputerUtilCost.getMaxXValue(sa, ai, sa.isTrigger());
+                    int xPay = ComputerUtilCost.setMaxXValue(sa, ai, sa.isTrigger());
                     if (xPay == 0) {
                         return new AiAbilityDecision(0, AiPlayDecision.CantAffordX);
                     }
                     xPay = Math.min(xPay, list.size());
                     sa.setXManaCostPaid(xPay);
                 } else {
-                    // Figure out the X amount, bail if it's zero (nothing will change zone).
                     int xValue = AbilityUtils.calculateAmount(source, "X", sa);
                     if (xValue == 0) {
+                        // nothing will change zone
                         return new AiAbilityDecision(0, AiPlayDecision.CantAffordX);
                     }
                 }
@@ -496,10 +471,8 @@ public class ChangeZoneAi extends SpellAbilityAi {
 
         // this works for hidden because the mana is paid first.
         final String type = sa.getParam("ChangeType");
-        if (!mandatory && sa.getPayCosts().hasXInAnyCostPart() && type != null && type.contains("X") && sa.getSVar("X").equals("Count$xPaid")) {
-            // Set PayX here to maximum value.
-            final int xPay = ComputerUtilCost.getMaxXValue(sa, ai, sa.isTrigger());
-            sa.setXManaCostPaid(xPay);
+        if (!mandatory && type != null && type.contains("X")) {
+            ComputerUtilCost.setMaxXValue(sa, ai, sa.isTrigger());
         }
 
         Iterable<Player> pDefined;
@@ -823,9 +796,8 @@ public class ChangeZoneAi extends SpellAbilityAi {
         if ("MimicVat".equals(sa.getParam("AILogic"))) {
             if (SpecialCardAi.MimicVat.considerExile(aiPlayer, sa)) {
                 return new AiAbilityDecision(100, AiPlayDecision.WillPlay);
-            } else {
-                return new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
             }
+            return new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
         }
 
         if (!sa.usesTargeting()) {
@@ -834,11 +806,9 @@ public class ChangeZoneAi extends SpellAbilityAi {
 
         if (!isPreferredTarget(aiPlayer, sa, false, true)) {
             return new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
-        } else {
-            // if we are here, we have a target
-            // so we can play the ability
-            return new AiAbilityDecision(100, AiPlayDecision.WillPlay);
         }
+        // if we are here, we have a target
+        return new AiAbilityDecision(100, AiPlayDecision.WillPlay);
     }
 
     /**
@@ -881,11 +851,7 @@ public class ChangeZoneAi extends SpellAbilityAi {
         sa.resetTargets();
         // X controls the minimum targets
         if ("X".equals(sa.getTargetRestrictions().getMinTargets()) && sa.getSVar("X").equals("Count$xPaid")) {
-            // Set PayX here to maximum value.
-            int xPay = ComputerUtilCost.getMaxXValue(sa, ai, sa.isTrigger());
-
-            // TODO need to set XManaCostPaid for targets, maybe doesn't need PayX anymore?
-            sa.setXManaCostPaid(xPay);
+            ComputerUtilCost.setMaxXValue(sa, ai, sa.isTrigger());
         }
         CardCollection list = CardLists.getTargetableCards(game.getCardsIn(origin), sa);
 
@@ -1220,24 +1186,20 @@ public class ChangeZoneAi extends SpellAbilityAi {
                     }
                     if (!doWithoutTarget) {
                         return false;
-                    } else {
-                        break;
                     }
-                } else {
-                    if (!sa.isTrigger() && !ComputerUtil.shouldCastLessThanMax(ai, source)) {
-                        boolean aiTgtsOK = false;
-                        if (sa.hasParam("AIMinTgts")) {
-                            int minTgts = Integer.parseInt(sa.getParam("AIMinTgts"));
-                            if (sa.getTargets().size() >= minTgts) {
-                                aiTgtsOK = true;
-                            }
-                        }
-                        if (!aiTgtsOK) {
-                            return false;
+                } else if (!sa.isTrigger() && !ComputerUtil.shouldCastLessThanMax(ai, source)) {
+                    boolean aiTgtsOK = false;
+                    if (sa.hasParam("AIMinTgts")) {
+                        int minTgts = Integer.parseInt(sa.getParam("AIMinTgts"));
+                        if (sa.getTargets().size() >= minTgts) {
+                            aiTgtsOK = true;
                         }
                     }
-                    break;
+                    if (!aiTgtsOK) {
+                        return false;
+                    }
                 }
+                break;
             }
 
             list.remove(choice);
@@ -1461,15 +1423,13 @@ public class ChangeZoneAi extends SpellAbilityAi {
         if ("DeathgorgeScavenger".equals(logic)) {
             if (SpecialCardAi.DeathgorgeScavenger.consider(ai, sa)) {
                 return new AiAbilityDecision(100, AiPlayDecision.WillPlay);
-            } else {
-                return new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
             }
+            return new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
         } else if ("ExtraplanarLens".equals(logic)) {
             if (SpecialCardAi.ExtraplanarLens.consider(ai, sa)) {
                 return new AiAbilityDecision(100, AiPlayDecision.WillPlay);
-            } else {
-                return new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
             }
+            return new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
         } else if ("ExileCombatThreat".equals(logic)) {
             return doExileCombatThreatLogic(ai, sa);
         }
@@ -1495,10 +1455,9 @@ public class ChangeZoneAi extends SpellAbilityAi {
         } else {
             if (isUnpreferredTarget(ai, sa, mandatory)) {
                 return new AiAbilityDecision(100, AiPlayDecision.WillPlay);
-            } else {
-                // If the AI is not the controller of the attachedTo card, then it is not a valid target.
-                return new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
             }
+            // If the AI is not the controller of the attachedTo card, then it is not a valid target.
+            return new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
         }
 
         return new AiAbilityDecision(100, AiPlayDecision.WillPlay);
@@ -1508,6 +1467,16 @@ public class ChangeZoneAi extends SpellAbilityAi {
         if (fetchList.isEmpty()) {
             return null;
         }
+        List<String> keyCards = player.getRegisteredPlayer().getDeck().getKeyCards();
+        String position = sa.getParamOrDefault("LibraryPosition", null);
+        // FOcus on the keycards I don't already have access to
+        if (destination.equals(ZoneType.Battlefield) || destination.equals(ZoneType.Hand) ||
+            (destination.equals(ZoneType.Library) && "0".equals(position))) {
+            for(Card c : player.getCardsIn(Lists.newArrayList(ZoneType.Hand, ZoneType.Battlefield))) {
+                keyCards.remove(c.getName());
+            }
+        }
+
         if (sa.hasParam("AILogic")) {
             String logic = sa.getParamOrDefault("AILogic", "");
             if ("NeverBounceItself".equals(logic)) {
@@ -1600,7 +1569,17 @@ public class ChangeZoneAi extends SpellAbilityAi {
                 fetchList = sameNamed;
             }
 
+            // Tutor for the first key card in the list, since the list should be in priority order
+            for(String keyName : keyCards) {
+                CardCollection withKeyCard = CardLists.filter(fetchList, CardPredicates.nameEquals(keyName));
+                if (withKeyCard.isEmpty()) {
+                    continue;
+                }
+                return withKeyCard.getFirst();
+            }
+
             // Does AI need a land?
+            // The logic here seems wrong if the decider isn't the same as the player
             CardCollectionView hand = decider.getCardsIn(ZoneType.Hand);
             if (!hand.anyMatch(CardPredicates.LANDS) && CardLists.count(decider.getCardsIn(ZoneType.Battlefield), CardPredicates.LANDS) < 4) {
                 boolean canCastSomething = false;
@@ -1699,7 +1678,12 @@ public class ChangeZoneAi extends SpellAbilityAi {
     @Override
     public Card chooseSingleCard(Player ai, SpellAbility sa, Iterable<Card> options, boolean isOptional, Player targetedPlayer, Map<String, Object> params) {
         // Called when looking for creature to attach aura or equipment
-        return AttachAi.attachGeneralAI(ai, sa, (List<Card>)options, !isOptional, (Card) params.get("Attach"), sa.getParam("AILogic"));
+
+        if (params.containsKey("Attach")) {
+            return AttachAi.attachGeneralAI(ai, sa, (List<Card>)options, !isOptional, (Card) params.get("Attach"), sa.getParam("AILogic"));
+        }
+
+        return super.chooseSingleCard(ai, sa, options, isOptional, targetedPlayer, params);
     }
 
     /* (non-Javadoc)
@@ -1844,9 +1828,8 @@ public class ChangeZoneAi extends SpellAbilityAi {
                     if (causeSa.getHostCard() == null || !causeSa.getHostCard().equals(sa.getReplacingObject(AbilityKey.Card))
                             || !causeSa.getActivatingPlayer().equals(aiPlayer)) {
                         return new AiAbilityDecision(100, AiPlayDecision.WillPlay);
-                    } else {
-                        return new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
                     }
+                    return new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
                 }
         }
 
@@ -1951,39 +1934,10 @@ public class ChangeZoneAi extends SpellAbilityAi {
                 });
             }
 
-            CardCollectionView graveyardList = aiPlayer.getGame().getCardsIn(ZoneType.Graveyard);
-            Set<CardType.CoreType> presentTypes = new HashSet<>();
-            for (Card inGrave : graveyardList) {
-                for(CardType.CoreType type : inGrave.getType().getCoreTypes()) {
-                    presentTypes.add(type);
-                }
-            }
-
-            final Map<CardType.CoreType, Integer> typesInDeck = Maps.newHashMap();
-            for (final Card c : scanList) {
-                for (CardType.CoreType ct : c.getType().getCoreTypes()) {
-                    if (presentTypes.contains(ct)) {
-                        Integer count = typesInDeck.get(ct);
-                        if (count == null) {
-                            count = 0;
-                        }
-                        typesInDeck.put(ct, count + 1);
-                    }
-                }
-            }
-            int max = 0;
-            CardType.CoreType maxType = CardType.CoreType.Land;
-
-            for (final Map.Entry<CardType.CoreType, Integer> entry : typesInDeck.entrySet()) {
-                final CardType.CoreType type = entry.getKey();
-
-                if (max < entry.getValue()) {
-                    max = entry.getValue();
-                    maxType = type;
-                }
-            }
-
-            final CardType.CoreType determinedMaxType = maxType;
+            Set<CardType.CoreType> presentTypes = aiPlayer.getGame().getCardsIn(ZoneType.Graveyard).stream().flatMap(inGrave -> inGrave.getType().getCoreTypes().stream()).collect(Collectors.toSet());
+            final CardType.CoreType determinedMaxType = scanList.stream().flatMap(c -> c.getType().getCoreTypes().stream()).filter(presentTypes::contains)
+                    .collect(Collectors.groupingBy(ct -> ct, Collectors.counting()))
+                    .entrySet().stream().max(Entry.comparingByValue()).orElse(Map.entry(CardType.CoreType.Land, 0l)).getKey();
             CardCollection preferredList = CardLists.filter(fetchList, card -> card.getType().hasType(determinedMaxType));
             CardCollection preferredOppList = CardLists.filter(preferredList, CardPredicates.isControlledByAnyOf(aiPlayer.getOpponents()));
 
@@ -2060,21 +2014,15 @@ public class ChangeZoneAi extends SpellAbilityAi {
                 Player opp = potentialTgt.getController();
                 int usableManaSources = ComputerUtilMana.getAvailableManaEstimate(opp);
 
-                int toPay = 0;
-                boolean setPayX = false;
+                int toPay;
                 if (unlessCost.equals("X") && sa.getSVar(unlessCost).equals("Count$xPaid")) {
-                    setPayX = true;
-                    toPay = ComputerUtilCost.getMaxXValue(sa, ai, true);
+                    toPay = ComputerUtilCost.setMaxXValue(sa, ai, true);
                 } else {
                     toPay = AbilityUtils.calculateAmount(source, unlessCost, sa);
                 }
 
                 if (toPay == 0 || toPay <= usableManaSources) {
                     canBeSaved.add(potentialTgt);
-                }
-
-                if (setPayX) {
-                    sa.setXManaCostPaid(toPay);
                 }
             }
         }
@@ -2105,7 +2053,7 @@ public class ChangeZoneAi extends SpellAbilityAi {
     }
 
     @Override
-    public boolean willPayUnlessCost(SpellAbility sa, Player payer, Cost cost, boolean alreadyPaid, FCollectionView<Player> payers) {
+    public boolean willPayUnlessCost(Player payer, SpellAbility sa, Cost cost, boolean alreadyPaid, FCollectionView<Player> payers) {
         final Card host = sa.getHostCard();
 
         int lifeLoss = 0;
@@ -2132,6 +2080,6 @@ public class ChangeZoneAi extends SpellAbilityAi {
             }
         }
 
-        return super.willPayUnlessCost(sa, payer, cost, alreadyPaid, payers);
+        return super.willPayUnlessCost(payer, sa, cost, alreadyPaid, payers);
     }
 }

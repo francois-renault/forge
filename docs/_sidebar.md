@@ -5,15 +5,13 @@
   - [SteamDeck/Bazzite](Steam-Deck-and-Bazzite-Install.md)
   - [AI](ai.md)
   - [Network Play](network-play.md)
-    - [Network FAQ](Network-FAQ.md)
-    - [Network Extra](Networking-Extras.md)
   - [Advanced search](Advanced-Search.md)
 
-- [Adventure Mode](Adventure/Adventure-Mode.md)
+- Adventure Mode
 
     - Gameplay Guide
       - [Getting Started](Adventure/Gameplay-Guide.md)
-      - [Different Planes](Adventure/Different-Planes.md)
+      - [Different Planes](Adventure/Planes.md)
       - [Currency](Adventure/Currency.md)
       - [Deck Building Tips](Adventure/Deck-Building-Tips.md)
       - [Towns & Capitals](Adventure/Towns-&-Capitals.md)
@@ -38,7 +36,7 @@
   - [Ability effects](Card-scripting-API/AbilityFactory.md)
   - [Triggers](Card-scripting-API/Triggers.md)
   - [Replacements](Card-scripting-API/Replacements.md)
-  - Statics
+  - [Statics](Card-scripting-API/Statics.md)
   - [Costs](Card-scripting-API/Costs.md)
   - [Affected / Targets](Card-scripting-API/Targeting.md)
   - [Restrictions / Conditions](Card-scripting-API/Restrictions.md)
@@ -51,6 +49,7 @@
   - [Dev Mode](Development/DevMode.md)
   - [Ownership](Development/ownership.md)
   - [Docker Container](docker-setup.md)
+  - [Network Testing](Development/Network-Testing.md)
 
 - Customization & Themes
   - [Skins](Skins.md)

@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import forge.StaticData;
@@ -72,10 +73,8 @@ public class ComputerUtilCard {
      * @param list
      */
     public static void sortByEvaluateCreature(final CardCollection list) {
-        list.sort(ComputerUtilCard.EvaluateCreatureComparator);
+        list.sort(getCachedCreatureComparator().reversed());
     }
-
-    // The AI doesn't really pick the best artifact, just the most expensive.
 
     /**
      * <p>
@@ -546,7 +545,10 @@ public class ComputerUtilCard {
         return null;
     }
 
-    public static final Comparator<Card> EvaluateCreatureComparator = (a, b) -> evaluateCreature(b) - evaluateCreature(a);
+    public static Comparator<Card> getCachedCreatureComparator() {
+        Map<Card, Integer> cache = new IdentityHashMap<>();
+        return Comparator.comparing(c -> cache.computeIfAbsent(c, creatureEvaluator));
+    }
     public static final Comparator<SpellAbility> EvaluateCreatureSpellComparator = (a, b) -> {
         // TODO ideally we could reuse the value from the previous pass with false
         return ComputerUtilAbility.saEvaluator.compareEvaluator(a, b, true);
@@ -566,6 +568,9 @@ public class ComputerUtilCard {
     public static int evaluateCreature(final Card c) {
         return creatureEvaluator.evaluateCreature(c);
     }
+    public static int evaluateCreature(final Card c, final boolean considerPT, final boolean considerCMC) {
+        return creatureEvaluator.evaluateCreature(c, considerPT, considerCMC);
+    }
     public static int evaluateCreature(final SpellAbility sa) {
         final Card host = sa.getHostCard();
 
@@ -580,16 +585,13 @@ public class ComputerUtilCard {
             host.setState(sa.getCardStateName(), false);
         }
 
-        int eval = evaluateCreature(host);
+        int eval = evaluateCreature(host, true, false);
 
         if (currentState != null) {
             host.setState(currentState, false);
         }
 
         return eval;
-    }
-    public static int evaluateCreature(final Card c, final boolean considerPT, final boolean considerCMC) {
-        return creatureEvaluator.evaluateCreature(c, considerPT, considerCMC);
     }
 
     public static int evaluatePermanentList(final CardCollectionView list) {
@@ -606,17 +608,7 @@ public class ComputerUtilCard {
 
     public static Map<String, Integer> evaluateCreatureListByName(final CardCollectionView list) {
         // Compute value for each possible target
-        Map<String, Integer> values = Maps.newHashMap();
-        for (Card c : list) {
-            String name = c.getName();
-            int val = evaluateCreature(c);
-            if (values.containsKey(name)) {
-                values.put(name, values.get(name) + val);
-            } else {
-                values.put(name, val);
-            }
-        }
-        return values;
+        return list.stream().collect(Collectors.groupingBy(Card::getName, Collectors.summingInt(c -> evaluateCreature(c))));
     }
 
     public static boolean doesCreatureAttackAI(final Player aiPlayer, final Card card) {
@@ -763,26 +755,9 @@ public class ComputerUtilCard {
             return "";
         }
 
-        final Map<String, Integer> map = Maps.newHashMap();
-
-        for (final Card c : list) {
-            final String name = c.getName();
-            Integer currentCnt = map.get(name);
-            map.put(name, currentCnt == null ? Integer.valueOf(1) : Integer.valueOf(1 + currentCnt));
-        }
-
-        int max = 0;
-        String maxName = "";
-
-        for (final Entry<String, Integer> entry : map.entrySet()) {
-            final String type = entry.getKey();
-
-            if (max < entry.getValue()) {
-                max = entry.getValue();
-                maxName = type;
-            }
-        }
-        return maxName;
+        return list.stream()
+                .collect(Collectors.groupingBy(Card::getName, Collectors.counting()))
+                .entrySet().stream().max(Entry.comparingByValue()).orElse(Map.entry("", 0l)).getKey();
     }
 
     public static String getMostProminentType(final CardCollectionView list, final Collection<String> valid) {
@@ -824,8 +799,7 @@ public class ComputerUtilCard {
 
             Set<String> cardCreatureTypes = c.getType().getCreatureTypes();
             for (String type : cardCreatureTypes) {
-                Integer count = typesInDeck.getOrDefault(type, 0);
-                typesInDeck.put(type, count + weight);
+                typesInDeck.merge(type, weight, Integer::sum);
             }
 
             //also take into account abilities that generate tokens
@@ -836,16 +810,14 @@ public class ComputerUtilCard {
                         if (tokenCR == null)
                             continue;
                         for (String type : tokenCR.getType().getCreatureTypes()) {
-                            Integer count = typesInDeck.getOrDefault(type, 0);
-                            typesInDeck.put(type, count + 1);
+                            typesInDeck.merge(type, 1, Integer::sum);
                         }
                     }
                 }
 
                 // special rule for Fabricate and Servo
                 if (c.hasKeyword(Keyword.FABRICATE)) {
-                    Integer count = typesInDeck.getOrDefault("Servo", 0);
-                    typesInDeck.put("Servo", count + weight);
+                    typesInDeck.merge("Servo", weight, Integer::sum);
                 }
             }
         }
@@ -867,39 +839,16 @@ public class ComputerUtilCard {
         return maxType;
     }
 
-    public static String getMostProminentCardType(final CardCollectionView list, final Collection<String> valid) {
+    public static CardType.CoreType getMostProminentCardType(final CardCollectionView list, final Collection<CardType.CoreType> valid) {
         if (list.isEmpty() || valid.isEmpty()) {
-            return "";
+            return null;
         }
 
-        final Map<String, Integer> typesInDeck = Maps.newHashMap();
-        for (String type : valid) {
-            typesInDeck.put(type, 0);
-        }
-
-        for (final Card c : list) {
-            Iterable<CardType.CoreType> cardTypes = c.getType().getCoreTypes();
-            for (CardType.CoreType type : cardTypes) {
-                Integer count = typesInDeck.get(type.toString());
-                if (count != null) {
-                    typesInDeck.put(type.toString(), count + 1);
-                }
-            }
-        }
-
-        int max = 0;
-        String maxType = "";
-
-        for (final Entry<String, Integer> entry : typesInDeck.entrySet()) {
-            final String type = entry.getKey();
-
-            if (max < entry.getValue()) {
-                max = entry.getValue();
-                maxType = type;
-            }
-        }
-
-        return maxType;
+        Map.Entry<CardType.CoreType, Long> result = list.stream().flatMap(c -> c.getType().getCoreTypes().stream())
+                .filter(valid::contains)
+                .collect(Collectors.groupingBy(s -> s, Collectors.counting()))
+                .entrySet().stream().max(Entry.comparingByValue()).orElse(null);
+        return result == null ? null : result.getKey(); // Map.entry doesn't like null key
     }
 
     /**
@@ -1354,10 +1303,8 @@ public class ComputerUtilCard {
                 if (CombatUtil.canAttack(c) || (phase.inCombat() && c.isAttacking())) {
                     return true;
                 }
-            } else {
-                if (CombatUtil.canBlock(c)) {
-                    return true;
-                }
+            } else if (CombatUtil.canBlock(c)) {
+                return true;
             }
         }
 
@@ -1758,7 +1705,7 @@ public class ComputerUtilCard {
         }
         final long timestamp2 = c.getGame().getNextTimestamp(); //is this necessary or can the timestamp be re-used?
         pumped.addChangedCardKeywordsInternal(toCopy, null, false, timestamp2, null, false);
-        pumped.updateKeywordsCache(pumped.getCurrentState());
+        pumped.updateKeywordsCache();
         applyStaticContPT(ai.getGame(), pumped, new CardCollection(c));
         return pumped;
     }
@@ -1862,7 +1809,16 @@ public class ComputerUtilCard {
         if (!c.isCreature()) {
             return false;
         }
-        if (c.hasKeyword("CARDNAME can't attack or block.") || (c.isTapped() && !c.canUntap(ai, true)) || (c.getOwner() == ai && ai.getOpponents().contains(c.getController()))) {
+        if (c.isDetained()) {
+            return true;
+        }
+        if (c.hasKeyword("CARDNAME can't attack or block.")) {
+            return true;
+        }
+        if (c.getOwner() == ai && ai.getOpponents().contains(c.getController())) {
+            return true;
+        }
+        if (c.isTapped() && !c.canUntap(ai, true)) {
             return true;
         }
         return false;

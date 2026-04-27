@@ -1,7 +1,33 @@
+# Table of Contents
+- [Downloads](#downloads)
+  - [Snapshots](#snapshots)
+  - [Releases](#releases)
+- [System Requirements](#system-requirements)
+- [Install and Run](#install-and-run)
+  - [Install Wizard (jar)](#install-wizard-jar)
+  - [Manual Extraction (tar.bz2)](#manual-extraction-tarbz2)
+- [User data migration](#user-data-migration)
+  - [Import Data](#import-data)
+- [Accessibility](#accessibility)
+- [Play Adventure Mode on Desktop](#play-adventure-mode-on-desktop)
+- [Gameplay](#gameplay)
+  - [Targeting Arrows](#targeting-arrows)
+  - [Card Zoomer](#card-zoomer)
+  - [Easier creature type selection](#easier-creature-type-selection)
+  - [Auto-Target](#auto-target)
+  - [Auto-Pay](#auto-pay)
+  - [Auto-Yield](#auto-yield)
+  - [Shift Key helper](#shift-key-helper)
+  - [Full Control](#full-control)
+  - [Repeatable Sequences (Macros)](#repeatable-sequences-macros)
+- [User Interface](#user-interface)
+  - [Layout](#layout)
+  - [Viewing Cards in Different Zones](#viewing-cards-in-different-zones)
+  - [Auto-Sort Multiplayer Fields](#auto-sort-multiplayer-fields)
+
 # Downloads
 
 ## Snapshots
-
 * Snapshots are automated daily builds of the source code.
 * They contain the latest bug fixes, features and cards.
 * If the snapshot isn't in the location below, it's because its in the middle of uploading a new snapshot - come back later to grab it.
@@ -15,7 +41,6 @@
 <https://github.com/user-attachments/assets/7a0c7bb8-7cf9-4800-8091-bcc30ff2f4d8>
 
 ## Releases
-
 * "Releases" are really intended where "99% cards implemented are working and stable".
 * **They are NOT bug-free.** They are not updated after they're built, meaning you need to wait for the next release if you encounter a bug, or use the SNAPSHOT version instead.
 * If you are looking for newly spoiled cards as soon as possible, grab the SNAPSHOT version instead.
@@ -26,7 +51,6 @@
 * Grab the installer file that ends in .jar
 
 # System Requirements
-
 **Forge Requires Java** to run, please make sure you have Java installed on your machine prior to attempting to run.
 
 * **Java 17** is required as minimum version and can be acquired through the Standard Edition Development Kit (JDK) or the OpenJDK. Continued development provides new features in those editions, therefore you need the Java Development Kit to have those newer editions:
@@ -48,21 +72,20 @@ an argument to the Java VM.)
 If you plan to eventually download all card images make sure you have several gigabytes of free drive space.
 
 # Install and Run
-
-> Warning: Do **NOT** owerwrite an existing installation. Always unpack/install the package in a new folder to avoid problems!
+> Warning: Do **NOT** overwrite an existing installation. Always unpack/install the package in a new folder to avoid problems!
 
 ## Install Wizard (jar)
-
-* Run/Double click "**forge-installer**-VERSION.jar" where VERSION is the current release version and click next until the Target Path window appears. If double clicking the .jar file doesn't load the main interface you can run it via terminal/command line ```java -jar FILENAME.jar``` where FILENAME is the name of the installer.
+* Run/Double click "**forge-installer**-VERSION.jar" where VERSION is the current release version and click next until the Target Path window appears. If double clicking the .jar file doesn't load the main interface you can run it via terminal/command line `java -jar FILENAME.jar` where FILENAME is the name of the installer.
 
 * Browse to your preferred install directory and click next until installation starts.
 
-![image](https://github.com/Card-Forge/forge/assets/9781539/b7575f49-f6b3-4933-a15f-726314547c4f)
+**If you're on Windows and not running the installer as administrator, you probably won't be able to install to the program files directories.**
+
+![image](installer.png)
 
 * After the installation finishes, close the installer. Run the executable forge|forge-adventure (.exe/.sh/.cmd)
 
 ### What if double-clicking doesn’t work?
-
 Sometimes double-clicking will open the jar file in a different program.
 In Windows, you may need to right-click and open the properties to change the launching program to Java.
 This might be different in OSX or Linux systems (file permission related).
@@ -70,14 +93,12 @@ This might be different in OSX or Linux systems (file permission related).
 ## Manual Extraction (tar.bz2)
 
 ### Desktop Windows
-
 * Unpack "forge...*tar.bz2*" with any unpacking/unzipping app (e.g. 7-zip, winrar, etc)
   * You'll end up with "forge...*tar*".
 * Unpack that ".tar" file once more into its own folder.
 * Run Forge app/exe
 
 ### Desktop Linux/Mac
-
 * Unpack "forge...*tar.bz2*" with any unpacking app. (Check your package repository, or app store.)
   * You'll probably end up with just a folder, and fully extracted.
   * If you do end up with a ".tar" file, unpack that file also into its own folder.
@@ -88,7 +109,6 @@ This might be different in OSX or Linux systems (file permission related).
     * Additionally OSX needs to have a JRE AND a JDK installed because reasons.
 
 ### Android
-
 * Sideload/Install "forge...apk"
 * Run Forge
 
@@ -120,7 +140,6 @@ If you have a directory full of deck files, you can use the Import Data dialog t
 We know some people are colorblind and may not be able to differentiate between colors of the default theme. Forge does have access to other [Skins](Skins.md), which use other color palettes that might be more suitable for you.
 
 # Play Adventure Mode on Desktop
-
 * Run the Adventure Mode EXE or Script in the Folder you extracted.
 * The game will start with an option for Adventure or Classic Mobile UI.
 * Android/Mobile builds are built as the Adventure Mode or Mobile UI and nothing special is needed.
@@ -194,3 +213,50 @@ e.g. the opposite cost order is needed if activating an animated "Halo Fountain"
 A feature for advanced users: during a match, you can use the default shortcut shift-R to specify a sequence of actions (mouse clicks, essentially, in the desktop paradigm). Type the IDs of cards/players you'd like to interact with, in order. Then the default shortcut @ (shift-2) will execute your sequence, one "click" at a time, repeating when it reaches the end. This is useful for executing repeated combos, such as sacrificing a recurring creature to Goblin Bombardment. You can see the IDs of cards by turning them on under "Card Overlays" in the "Game" menu.
 
 The macro will dutifully execute your click sequence without regard to changes in game state (so if an opponent kills your specified creature mid-macro, and you continue to execute it, you will be essentially clicking on the creature in the graveyard, which may or may not be what you want).
+
+# Desktop User Interface
+
+## Layout
+The match screen is built from draggable, resizable cells. Each cell contains one or more tabbed panels (e.g. battlefield, hand, log, stack, card detail, etc). 
+
+The layout is highly customisable and can be re-arranged to suit your preferences.
+
+- **Move a single tab:** Click and drag a tab's label to another cell (it becomes a new tab there) or to the edge of a cell (splitting it to create a new cell).
+- **Move an entire cell:** Click and drag the handle on the left side of a cell's header to move all its tabs as a unit.
+- **Drop zones:** Dragging to the left, right, top, or bottom edge of a target cell splits it in that direction. Dragging to the centre adds the panel as a tab. A visual preview shows where the panel will land.
+
+Layouts are saved as XML files and  adapt to different window sizes and resolutions.
+- **Save/Load:** Use **Layout > File** in the menu bar to save, open, or revert layouts.
+- **Default layouts** ship with Forge and are restored when you select **Revert to Default Layout**.
+- **User layouts** are stored in your Forge user data directory under `preferences/` (e.g., `%APPDATA%/Forge/preferences/match.xml` on Windows).
+- **Tab visibility:** Toggle panel tabs on or off via **Layout > View > Show Panel Tabs**.
+
+## Viewing cards in different zones
+Underneath each player's battlefield portrait are zone buttons (hand, library, graveyard, exile, flashback, command, sideboard) with card counts. Clicking a zone button opens that zone's contents for viewing.
+
+**Display modes:** Right-click a zone button to toggle how it opens:
+
+- **Open in Window** — Opens a floating window that can be moved and resized independently. Right-click the window's title bar to toggle alphabetical sorting.
+- **Add Tab to Hand Panel** — Docks the zone as a tab alongside your hand panel, integrated into the main layout.
+
+Your preference is saved per zone and remembered separately for your own zones and opponent zones.
+
+**Drag-to-dock:** A floating zone window can also be docked by dragging its title bar over any cell's tab bar — a blue highlight shows where it will land. Once docked, right-click the tab for an option to undock it back to a floating window.
+
+> [!TIP]
+> Enable the Layout->View->New card count menu option to display a delta number in the tab header which may help you more quickly identify changes in complex boardstates.
+
+## Auto-Sort Multiplayer Fields
+In multiplayer games (3+ players), Forge can automatically arrange opponent battlefield panels in turn order. This is controlled via the **Layout > View** menu during a match.
+
+**Enabling the feature:**
+- **Layout > View > Sort Multiplayer Fields** — Toggle the feature on or off. When off, extra player fields are simply added as tabs to existing panels (the default behaviour) without regard to turn order.
+
+**When enabled, two additional settings become available in the Layout > View menu:**
+
+| Setting | Options | Description                                                                                                                    |
+|---------|---------|--------------------------------------------------------------------------------------------------------------------------------|
+| **Multiplayer Field Layout** | Grid, Rows | **Grid** distributes opponents across both top and bottom rows. **Rows** stacks all opponents in the top row above the player. |
+| **Multiplayer Field Panels** | Tabbed, Split | **Tabbed** groups multiple fields as tabs in the same panel. **Split** gives each field its own side-by-side panel.            |
+
+All three settings can be changed mid-game and take effect immediately. The feature only activates when three or more players are in the match — standard two-player games are unaffected.

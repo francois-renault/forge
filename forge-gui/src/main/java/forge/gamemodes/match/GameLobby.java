@@ -55,6 +55,10 @@ public abstract class GameLobby implements IHasGameType {
         return hostedMatch != null && hostedMatch.isMatchOver() == false;
     }
 
+    public HostedMatch getHostedMatch() {
+        return hostedMatch;
+    }
+
     public void setListener(final IUpdateable listener) {
         this.listener = listener;
     }
@@ -416,12 +420,13 @@ public abstract class GameLobby implements IHasGameType {
             final int sleeve = slot.getSleeveIndex();
             final boolean isArchenemy = slot.isArchenemy();
             final int team = GameType.Archenemy.equals(currentGameType) && !isArchenemy ? 1 : slot.getTeam();
-            final Set<AIOption> aiOptions = slot.getAiOptions();
+            final Set<AIOption> aiOptions = slot.getAiOptions(); // TODO: could AiOptions carry the choice of which AI is selected to play against?
 
             final boolean isAI = slot.getType() == LobbySlotType.AI;
             final LobbyPlayer lobbyPlayer;
             if (isAI) {
-                lobbyPlayer = GamePlayerUtil.createAiPlayer(name, avatar, sleeve, aiOptions);
+                String aiProfileOverride = slot.getAiProfile();
+                lobbyPlayer = GamePlayerUtil.createAiPlayer(name, avatar, sleeve, aiOptions, aiProfileOverride);
             }
             else {
                 boolean setNameNow = false;
@@ -522,12 +527,13 @@ public abstract class GameLobby implements IHasGameType {
         //if above checks succeed, return runnable that can be used to finish starting game
         return () -> {
             hostedMatch = GuiBase.getInterface().hostMatch();
+            hostedMatch.setOnMatchOver(this::onMatchOver);
             hostedMatch.startMatch(GameType.Constructed, variantTypes, players, guis);
 
             for (final Player p : hostedMatch.getGame().getPlayers()) {
                 final LobbySlot slot = playerToSlot.get(p.getRegisteredPlayer());
-                if (p.getController() instanceof IGameController) {
-                    gameControllers.put(slot, (IGameController) p.getController());
+                if (p.getController() instanceof IGameController controller) {
+                    gameControllers.put(slot, controller);
                 }
             }
 
@@ -535,6 +541,12 @@ public abstract class GameLobby implements IHasGameType {
 
             onGameStarted();
         };
+    }
+
+    protected void onMatchOver() {
+        hostedMatch = null;
+        gameControllers.clear();
+        updateView(true);
     }
 
     public final static class GameLobbyData implements Serializable {

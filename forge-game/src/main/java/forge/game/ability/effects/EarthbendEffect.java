@@ -1,9 +1,10 @@
 package forge.game.ability.effects;
 
-import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 
+import forge.card.CardType;
 import forge.card.RemoveType;
 import forge.game.Game;
 import forge.game.GameEntityCounterTable;
@@ -11,7 +12,6 @@ import forge.game.ability.AbilityFactory;
 import forge.game.ability.AbilityUtils;
 import forge.game.ability.SpellAbilityEffect;
 import forge.game.card.Card;
-import forge.game.card.CardCopyService;
 import forge.game.card.CounterEnumType;
 import forge.game.player.Player;
 import forge.game.spellability.SpellAbility;
@@ -38,6 +38,7 @@ public class EarthbendEffect extends SpellAbilityEffect {
 
     @Override
     public void buildSpellAbility(final SpellAbility sa) {
+        super.buildSpellAbility(sa);
         TargetRestrictions abTgt = new TargetRestrictions(Map.of("ValidTgtsDesc", "land you control", "ValidTgts", "Land.YouCtrl"));
         sa.setTargetRestrictions(abTgt);
     }
@@ -58,12 +59,12 @@ public class EarthbendEffect extends SpellAbilityEffect {
         // Earthbend should only target one land
         for (Card c : getTargetCards(sa)) {
             c.addNewPT(0, 0, ts, 0);
-            c.addChangedCardTypes(Arrays.asList("Creature"), null, false, EnumSet.noneOf(RemoveType.class), ts, 0, true, false);
-            c.addChangedCardKeywords(Arrays.asList("Haste"), null, false, ts, null);
+            c.addChangedCardTypes(new CardType(List.of("Creature"), true), null, false, EnumSet.noneOf(RemoveType.class), ts, 0, true, false);
+            c.addChangedCardKeywords(List.of("Haste"), null, false, ts, null);
 
             GameEntityCounterTable table = new GameEntityCounterTable();
             c.addCounter(CounterEnumType.P1P1, num, pl, table);
-            table.replaceCounterEffect(game, sa, true);
+            table.replaceCounterEffect(game, sa);
 
             buildTrigger(sa, c, sbTrigA, "Graveyard");
             buildTrigger(sa, c, sbTrigB, "Exile");
@@ -76,7 +77,7 @@ public class EarthbendEffect extends SpellAbilityEffect {
         final Game game = source.getGame();
         String trigSA = "DB$ ChangeZone | Defined$ DelayTriggerRemembered | Origin$ " + zone + " | Destination$ Battlefield | Tapped$ True | GainControl$ You";
 
-        final Trigger trig = TriggerHandler.parseTrigger(sbTrig, CardCopyService.getLKICopy(source), sa.isIntrinsic());
+        final Trigger trig = TriggerHandler.parseTrigger(sbTrig, source, sa.isIntrinsic());
         final SpellAbility newSa = AbilityFactory.getAbility(trigSA, sa.getHostCard());
         newSa.setIntrinsic(sa.isIntrinsic());
         trig.addRemembered(c);

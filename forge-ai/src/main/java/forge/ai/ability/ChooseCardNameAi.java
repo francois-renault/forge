@@ -33,9 +33,8 @@ public class ChooseCardNameAi extends SpellAbilityAi {
             if (logic.equals("CursedScroll")) {
                 if (SpecialCardAi.CursedScroll.consider(ai, sa)) {
                     return new AiAbilityDecision(100, AiPlayDecision.WillPlay);
-                } else {
-                    return new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
                 }
+                return new AiAbilityDecision(0, AiPlayDecision.CantPlayAi);
             }
 
             final TargetRestrictions tgt = sa.getTargetRestrictions();
@@ -56,7 +55,7 @@ public class ChooseCardNameAi extends SpellAbilityAi {
     protected AiAbilityDecision doTriggerNoCost(Player ai, SpellAbility sa, boolean mandatory) {
         String aiLogic = sa.getParamOrDefault("AILogic", "");
         if ("PithingNeedle".equals(aiLogic)) {
-            // Make sure theres something in play worth Needlings.
+            // Make sure there's something in play worth Needlings.
             // Planeswalker or equipment or something
 
             CardCollection oppPerms = CardLists.getValidCards(ai.getOpponents().getCardsIn(ZoneType.Battlefield), "Card.OppCtrl+hasNonManaActivatedAbility", ai, sa.getHostCard(), sa);

@@ -11,7 +11,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import forge.GameCommand;
-import forge.card.CardType;
 import forge.game.Game;
 import forge.game.GameEntity;
 import forge.game.ability.AbilityUtils;
@@ -36,7 +35,7 @@ public class PumpEffect extends SpellAbilityEffect {
         final Card host = sa.getHostCard();
         final Game game = host.getGame();
         final String duration = sa.getParam("Duration");
-        final boolean perpetual = ("Perpetual").equals(duration);
+        final boolean perpetual = "Perpetual".equals(duration);
 
         // do Game Check there in case of LKI
         final Card gameCard = game.getCardState(applyTo, null);
@@ -374,10 +373,8 @@ public class PumpEffect extends SpellAbilityEffect {
         if (sa.hasParam("DefinedLandwalk")) {
             final String landtype = sa.getParam("DefinedLandwalk");
             for (final Card c : AbilityUtils.getDefinedCards(host, landtype, sa)) {
-                for (String type : c.getType()) {
-                    if (CardType.isALandType(type)) {
-                        keywords.add("Landwalk:" +type);
-                    }
+                for (String type : c.getType().getLandTypes()) {
+                    keywords.add("Landwalk:" +type);
                 }
             }
         }
@@ -477,12 +474,11 @@ public class PumpEffect extends SpellAbilityEffect {
             }
 
             if (sa.hasParam("NumAtt") && sa.getParam("NumAtt").equals("Triple")) {
-                a = tgtC.getNetPower()*2;
+                a = tgtC.getNetPower() *2;
             }
             if (sa.hasParam("NumDef") && sa.getParam("NumDef").equals("Triple")) {
-                d = tgtC.getNetToughness()*2;
+                d = tgtC.getNetToughness() *2;
             }
-
 
             applyPump(sa, tgtC, a, d, affectedKeywords, timestamp);
         }

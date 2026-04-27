@@ -8,7 +8,7 @@
 - Java JDK 17 or later
 - Git
 - Git client (optional)
-- Maven
+- [Maven](https://maven.apache.org/install.html)
 - GitHub account
 - Libgdx (optional: familiarity with this library is helpful for mobile platform development)
 - Android SDK (optional: for Android releases)
@@ -44,6 +44,9 @@ In IntelliJ, if the SDK Manager is not already running, go to Tools > Android > 
 
 - Android SDK Build-tools 35.0.0
 - Android 15 (API 35) SDK Platform
+
+> [!CAUTION]
+> Be careful about using unsupported api calls e.g. ``StringBuilder.isEmpty()``. Google's documentation for these is sometimes inaccurate.
 
 ### Proguard update
 
