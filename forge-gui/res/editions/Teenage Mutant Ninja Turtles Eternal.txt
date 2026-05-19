@@ -1,5 +1,6 @@
 [metadata]
 Code=TMC
+ScryfallCode=TMC
 Date=2026-03-06
 Name=Teenage Mutant Ninja Turtles Eternal
 Type=Expansion
@@ -131,12 +132,6 @@ Type=Expansion
 128 U Study the Classics @Leonardo Santanna
 129 U Turtle Tracks @Marina Ortega Lorente
 130 U Manhole Cover @Anthony Devine
-131 M Dark Ritual @Filipe Pagliuso
-132 M Waste Not @Raluca Marinescu
-133 M Food Chain @J.P. Targete
-134 M Supreme Verdict @Raluca Marinescu
-135 M Commander's Plate @Filipe Pagliuso
-136 M Sword of Hearth and Home @Raluca Marinescu
 
 [tokens]
 1 g_2_2_ooze @Villarrte
